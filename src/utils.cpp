@@ -7,36 +7,25 @@
 #include <unistd.h>
 #define PATH_MAX 1024
 #define DEBUG 0
-#define MIN_FOR_1 125
-#define MIN_FOR_2 75
 using namespace std::chrono;
 using namespace std;
 
-extern float* tabla_d1;
-extern float* tabla_d15;
-extern float* tabla_d2;
-extern float* tabla_demanda;
+extern float* tabla_d1, *tabla_d15, *tabla_d2, *tabla_demanda;
 extern unsigned int table_sz;
 
 extern ofstream myfile;
 extern bool streambuffer;
 
-extern float litros_diarios;
-extern float capacidad_latas;
-extern unsigned int capacidad_almacenamiento;
-extern unsigned int capacidad_almacenamiento;
-extern unsigned int capacidad_actual;
-extern unsigned int max_iters;
+extern float litros_diarios, capacidad_latas;
+extern unsigned int capacidad_almacenamiento, capacidad_almacenamiento;
+extern unsigned int capacidad_actual, max_iters;
 
-extern float dias_donados;
-extern float dias_insuff;
-extern float cantidad_donada;
-extern float ventas_perdidas;
+extern float dias_donados, dias_insuff, cantidad_donada, ventas_perdidas;
+extern float ganancia, precio_actual;
 
-extern float accum_dias_donados;
-extern float accum_dias_insuff;
-extern float accum_cantidad_donada;
-extern float accum_ventas_perdidas;
+extern float accum_dias_donados, accum_dias_insuff, accum_cantidad_donada;
+extern float accum_ventas_perdidas, accum_beneficios;
+extern float MIN_FOR_1, MIN_FOR_2;
 
 double uniforme()
 {
@@ -101,13 +90,19 @@ void producir_leche(){
 
 void calcula_ventas(unsigned int demanda){
    if(demanda > capacidad_actual){
-       if(DEBUG)
+       if(DEBUG){
             cout << "Insuficiente " << demanda-capacidad_actual << "..." << "\t";
+            cout << "Ganancia de " << capacidad_actual * precio_actual << "\t";
+       }
        dias_insuff++;
        ventas_perdidas += demanda-capacidad_actual;
+       ganancia += capacidad_actual * precio_actual;
        capacidad_actual = 0;
    }else{
        capacidad_actual -= demanda;
+       if(DEBUG)
+            cout << "Ganancia de " << capacidad_actual * precio_actual << "\t";
+       ganancia += demanda * precio_actual;
    }
    if(DEBUG)
         cout << endl;
@@ -143,17 +138,20 @@ int genera_demanda_d2(){
 
 int genera_demanda(){
     int demanda = 0;
-    if(capacidad_actual>MIN_FOR_1){
+    if(capacidad_actual>=MIN_FOR_1){
         if(DEBUG)
             cout << "1" << "\t";
+        precio_actual = 1;
         demanda = genera_demanda_d1();
     }else if(capacidad_actual > MIN_FOR_2){
         if(DEBUG)
             cout << "1.5" << "\t";
+        precio_actual = 1.5;
         demanda = genera_demanda_d15();
     }else{
         if(DEBUG)
             cout << "2" << "\t";
+        precio_actual = 2;
         demanda = genera_demanda_d2();
     }
     if(DEBUG)
@@ -166,6 +164,7 @@ void acumula_resultados(){
     accum_dias_insuff += dias_insuff;
     accum_cantidad_donada += cantidad_donada;
     accum_ventas_perdidas += ventas_perdidas;
+    accum_beneficios += ganancia;
 }
 
 void generar_informe(int i){
@@ -176,12 +175,14 @@ void generar_informe(int i){
                 << setw(20) << "Cantidad Donada"
                 << setw(20) << "Dias Insuff"
                 << setw(20) << "Ventas Perdidas"
+                << setw(20) << "Ganancia"
                 << endl;
         }
         oss << fixed << setprecision(2) << dias_donados
             << setw(22) << cantidad_donada
             << setw(22) << dias_insuff
             << setw(22) << ventas_perdidas
+            << setw(22) << ganancia
             << endl;
         cout  << oss.str();
     }else{
@@ -189,6 +190,7 @@ void generar_informe(int i){
             << setw(10) << cantidad_donada
             << setw(10) << dias_insuff
             << setw(10) << ventas_perdidas
+            << setw(10) << ganancia
             << endl;
         myfile << oss.str();
     }
@@ -201,18 +203,22 @@ void informe(){
                 << setw(20) << "Cantidad Donada"
                 << setw(20) << "Dias Insuff"
                 << setw(20) << "Ventas Perdidas"
+                << setw(20) << "Ganancia"
                 << endl;
         oss << fixed << setprecision(2) << accum_dias_donados
             << setw(22) << accum_cantidad_donada
             << setw(22) << accum_dias_insuff
             << setw(22) << accum_ventas_perdidas
+            << setw(22) << accum_beneficios
             << endl;
         cout  << oss.str();
     }else{
+        myfile << "\n\n";
         oss << fixed << setprecision(2) << setw(10) << accum_dias_donados
             << setw(10) << accum_cantidad_donada
             << setw(10) << accum_dias_insuff
             << setw(10) << accum_ventas_perdidas
+            << setw(10) << accum_beneficios
             << endl;
         myfile << oss.str();
     }
@@ -226,7 +232,8 @@ void openfile(){
     path = get_selfpath();
     path = path.substr(0,path.find_last_of("/\\") + 1) + "../resultados/" ;
     oss << "dairy-N:" << capacidad_actual << "-M:" << capacidad_almacenamiento
-        << "-L:" << litros_diarios << "-CL:" << capacidad_latas << ".txt";
+        << "-L:" << litros_diarios << "-M1:" << MIN_FOR_1 << "-M2:" << MIN_FOR_2
+        << ".txt";
     cout << oss.str() << endl;
     myfile.open(path + oss.str(),ios::out|ios::trunc);
     if(!myfile.is_open()){

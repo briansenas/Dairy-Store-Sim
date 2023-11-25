@@ -1,7 +1,7 @@
 # Modelo de MonteCarlo para lechería.
 Trataremos de simular, mediante un modelo de Monte Carlo, una lechería. La
 lechería producirá leche por la mañana, llenará las botellas, las pondrá en el
-depósito. A la vez, habrá recido todos los pedidos de esa misma tarde. Una vez
+depósito. A la vez, habrá recibido todos los pedidos de esa misma tarde. Una vez
 finalizado la mañana se despachará todos los pedidos a los clientes, teniendo en
 cuenta que la capacidad de la tienda es limitada y por ello se pueden "rechazar" pedidos,
 es decir, tener ventas perdidas.
